@@ -1,0 +1,79 @@
+Prepare necessary files
+Download letsacme.
+Create account key
+Generate a CSR
+Download sslic.php
+Prepare the renewcert.sh script
+Create an empty sub-domain.
+Set up redirect code in .htaccess file.
+Review the directory structure.
+Setup a cron job.
+Trigger the renewcert.sh script once.
+
+mkdir ~/letsacme
+cd ~/letsacme
+
+Download letsacme
+wget https://raw.githubusercontent.com/Juraganet/letsencrypt-shared-hosting/master/letsacme.py
+
+Create account key
+openssl genrsa 4096 > account.key
+
+Generate a CSR
+Login to cPanel and generate the CSR (You can add more than one domain at CSR creation form, also make sure include both www and without www site)
+Copy CSR file into: ~/letsacme/
+
+Create dom.list file
+Content of dom.list:
+example.com
+www.example.com
+example2.com
+www.example2.com
+
+Download sslic.php
+wget https://raw.githubusercontent.com/Juraganet/letsencrypt-shared-hosting/master/sslic.php
+
+Download renewcert.sh and modify the content to match your hosting account
+https://raw.githubusercontent.com/Juraganet/letsencrypt-shared-hosting/master/renewcert.sh
+
+user='your cpanel username here'
+pass="you cpanel password here"
+email='an email address under your domain'
+
+HOME=/home/user                         # change 'user' to your username
+ndir=$HOME/letsacme                     # this directory path
+chlng=$HOME/challenge/acme-challenge    # challenge directory path
+letsacme_log="$ndir"/letsacme.log       # path to letsacme log file
+
+acc_key="$ndir"/account.key             # path to account key file
+key="$ndir"/dom.key                     # path to key file that was used to create CSR
+csr="$ndir"/dom.csr                     # path to CSR file
+dom_crt="$ndir"/dom.crt                 # path to cert file
+chain_crt="$ndir"/chain.crt             # path to chain file
+full_crt="$ndir"/fullchain.crt          # path to fullchain file
+dom_file="$ndir"/dom.list               # path to a file containing domain names per line
+
+letsacme="$ndir"/letsacme.py            # path to letsacme.py
+sslic="$ndir"/sslic.php                 # path to sslic.php
+
+
+
+chmod 600 renewcert.sh
+
+Create a sub-domain
+subdomain: challenge
+rootdirectory: challenge
+
+Create/open .htaccess in all root directory of each of the domains in dom.list, add these lines:
+RewriteEngine On
+RewriteBase /
+# change challenge.your-domain.org to your actual domain
+RewriteRule ^.well-known/acme-challenge/(.*)$ http://challenge.your-domain.org/acme-challenge/$1 [L,R=302]
+
+Run renewcert.sh
+bash renewcert.sh
+
+Setup cronjob in cpanel
+0 0 1,15 * * /bin/sh /home/user/letsacme/renewcert.sh >/home/user/letsacme/renewcert.log 2>/home/user/letsacme/renewcert_err.log
+
+chmod 700 ~/letsacme
